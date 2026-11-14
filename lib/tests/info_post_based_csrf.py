@@ -1,5 +1,5 @@
 """Checks if queries are allowed over POST not in JSON."""
-from lib.utils import request, curlify
+from lib.utils import build_headers, process_response, request
 
 
 def post_based_csrf(url, proxies, headers, debug_mode):
@@ -10,19 +10,18 @@ def post_based_csrf(url, proxies, headers, debug_mode):
     'impact':'Possible Cross Site Request Forgery - /' + url.rsplit('/', 1)[-1],
     'severity':'MEDIUM',
     'color': 'yellow',
-    'curl_verify':''
+    'curl_verify':'',
+    'error':None
   }
 
   q = 'query cop { __typename }'
-  if debug_mode:
-    headers['X-GraphQL-Cop-Test'] = res['title']
-  response = request(url, proxies=proxies, headers=headers, data={'query': q}, verb='POST')
-  res['curl_verify'] = curlify(response)
-
+  request_headers = build_headers(headers, res['title'] if debug_mode else None)
+  response = request(url, proxies=proxies, headers=request_headers, data={'query': q}, verb='POST')
+  body = process_response(res, response)
   try:
-    if response and response.json()['data']['__typename']:
+    if body and body['data']['__typename']:
         res['result'] = True
-  except:
+  except Exception:
       pass
 
   return res

@@ -1,5 +1,5 @@
 """Batch tests."""
-from lib.utils import graph_query, curlify
+from lib.utils import build_headers, graph_query, process_response
 
 
 def batch_query(url, proxy, headers, debug_mode):
@@ -11,19 +11,18 @@ def batch_query(url, proxy, headers, debug_mode):
     'impact':'Denial of Service - /' + url.rsplit('/', 1)[-1],
     'severity':'HIGH',
     'color': 'red',
-    'curl_verify':''
+    'curl_verify':'',
+    'error':None
   }
 
-  if debug_mode:
-    headers['X-GraphQL-Cop-Test'] = res['title']
-  gql_response = graph_query(url, proxies=proxy, headers=headers, payload='query cop { __typename }', batch=True)
-  
-  res['curl_verify'] = curlify(gql_response)
-  
+  request_headers = build_headers(headers, res['title'] if debug_mode else None)
+  gql_response = graph_query(url, proxies=proxy, headers=request_headers, payload='query cop { __typename }', batch=True)
+  body = process_response(res, gql_response)
+
   try:
-      if len(gql_response.json()) >= 10:
+      if body and len(body) >= 10:
         res['result'] = True
-  except:
+  except Exception:
     pass
 
   return res

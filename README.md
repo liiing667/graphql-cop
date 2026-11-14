@@ -38,6 +38,16 @@ source path/to/venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 First command creates a virtual environment in the directory specified by `path/to/venv`.
+
+## Running the test suite
+
+The acceptance tests spin up an in-process fake GraphQL server using only the
+Python standard library, so no external service is required.
+
+```
+python3 -m pip install -r requirements-dev.txt
+python3 -m pytest tests/
+```
 Second command activates the virtual environment. 
 Final command installs all the Python packages listed in the requirements.txt.
 

@@ -1,5 +1,5 @@
 """Collect trace mode details."""
-from lib.utils import graph_query, curlify
+from lib.utils import build_headers, graph_query, process_response
 
 
 def unhandled_error_detection(url, proxy, headers, debug_mode):
@@ -11,21 +11,20 @@ def unhandled_error_detection(url, proxy, headers, debug_mode):
     'impact':'Information Leakage - /' + url.rsplit('/', 1)[-1],
     'severity':'INFO',
     'color': 'green',
-    'curl_verify':''
+    'curl_verify':'',
+    'error':None
   }
 
   q = 'qwerty cop { abc }'
-
+  request_headers = build_headers(headers, res['title'] if debug_mode else None)
+  gql_response = graph_query(url, proxies=proxy, headers=request_headers, payload=q)
+  body = process_response(res, gql_response)
   try:
-    if debug_mode:
-      headers['X-GraphQL-Cop-Test'] = res['title']
-    gql_response = graph_query(url, proxies=proxy, headers=headers, payload=q)
-    res['curl_verify'] = curlify(gql_response)
-    if gql_response.json()['errors'][0]['extensions']['exception']:
+    if body and body['errors'][0]['extensions']['exception']:
       res['result'] = True
-    elif '\'extensions\': {\'exception\':' in str(gql_response.json()).lower():
+    elif body and "'extensions': {'exception':" in str(body).lower():
       res['result'] = True
-  except:
+  except Exception:
     pass
 
   return res

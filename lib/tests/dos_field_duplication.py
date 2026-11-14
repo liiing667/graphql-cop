@@ -1,5 +1,5 @@
 """Field duplication tests."""
-from lib.utils import graph_query, curlify
+from lib.utils import build_headers, graph_query, process_response
 
 
 def field_duplication(url, proxy, headers, debug_mode):
@@ -11,20 +11,20 @@ def field_duplication(url, proxy, headers, debug_mode):
     'impact':'Denial of Service - /' + url.rsplit('/', 1)[-1],
     'severity':'HIGH',
     'color': 'red',
-    'curl_verify':''
+    'curl_verify':'',
+    'error':None
   }
 
   duplicated_string = '__typename \n' * 500
   q = 'query cop { ' + duplicated_string + '} '
-  if debug_mode:
-    headers['X-GraphQL-Cop-Test'] = res['title']
-  gql_response = graph_query(url, proxies=proxy, headers=headers, payload=q)
-  res['curl_verify'] = curlify(gql_response)
+  request_headers = build_headers(headers, res['title'] if debug_mode else None)
+  gql_response = graph_query(url, proxies=proxy, headers=request_headers, payload=q)
+  body = process_response(res, gql_response)
 
   try:
-    if gql_response.json()['data']['__typename']:
+    if body and body['data']['__typename']:
       res['result'] = True
-  except:
+  except Exception:
     pass
 
   return res

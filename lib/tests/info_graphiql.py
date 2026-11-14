@@ -1,5 +1,5 @@
 """Collect GraphiQL details."""
-from lib.utils import request, curlify
+from lib.utils import build_headers, process_response, request
 
 def detect_graphiql(url, proxy, headers, debug_mode):
   """Get GraphiQL."""
@@ -10,26 +10,20 @@ def detect_graphiql(url, proxy, headers, debug_mode):
     'impact':'Information Leakage - /' + url.rsplit('/', 1)[-1],
     'severity':'LOW',
     'color': 'blue',
-    'curl_verify':''
+    'curl_verify':'',
+    'error':None
   }
 
   heuristics = ('graphiql.min.css', 'GraphQL Playground', 'GraphiQL', 'graphql-playground')
 
-  if "Accept" in headers.keys():
-    backup_accept_header=headers["Accept"]
-  headers["Accept"]= "text/html"
-  if debug_mode:
-      headers['X-GraphQL-Cop-Test'] = res['title']
-  response = request(url, proxies=proxy, headers=headers)
-  res['curl_verify'] = curlify(response)
+  request_headers = build_headers(headers, res['title'] if debug_mode else None)
+  request_headers['Accept'] = 'text/html'
+  response = request(url, proxies=proxy, headers=request_headers)
+  process_response(res, response, expect_json=False)
   try:
-    if response and any(word in response.text for word in heuristics):
+    if response and hasattr(response, 'text') and any(word in response.text for word in heuristics):
       res['result'] = True
-  except:
+  except Exception:
       pass
-
-  del headers["Accept"]
-  if 'backup_accept_header' in locals():
-    headers["Accept"]=backup_accept_header
 
   return res

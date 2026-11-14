@@ -1,5 +1,5 @@
 """Perform Circular Query based on Introspection."""
-from lib.utils import graph_query, curlify
+from lib.utils import build_headers, graph_query, process_response
 
 def circular_query_introspection(url, proxy, headers, debug_mode):
   """Run a Circular Query using introspection."""
@@ -10,18 +10,18 @@ def circular_query_introspection(url, proxy, headers, debug_mode):
     'impact':'Denial of Service - /' + url.rsplit('/', 1)[-1],
     'severity':'HIGH',
     'color': 'red',
-    'curl_verify':''
+    'curl_verify':'',
+    'error':None
   }
 
   q = 'query cop { __schema { types { fields { type { fields { type { fields { type { fields { type { name } } } } } } } } } } }'
-  if debug_mode:
-    headers['X-GraphQL-Cop-Test'] = res['title']
-  gql_response = graph_query(url, proxies=proxy, headers=headers, payload=q)
-  res['curl_verify'] = curlify(gql_response)
+  request_headers = build_headers(headers, res['title'] if debug_mode else None)
+  gql_response = graph_query(url, proxies=proxy, headers=request_headers, payload=q)
+  body = process_response(res, gql_response)
   try:
-    if len(gql_response.json()['data']['__schema']['types']) > 25:
+    if body and len(body['data']['__schema']['types']) > 25:
       res['result'] = True
-  except:
+  except Exception:
     pass
 
   return res
